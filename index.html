@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajedrez Real Interactivo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            touch-action: manipulation;
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            grid-template-rows: repeat(8, minmax(0, 1fr));
+            aspect-ratio: 1 / 1;
+        }
+
+        .square-light {
+            background-color: #f0d9b5;
+            color: #b58863;
+        }
+
+        .square-dark {
+            background-color: #b58863;
+            color: #f0d9b5;
+        }
+
+        .square-selected {
+            background-color: #769656 !important;
+            box-shadow: inset 0 0 0 3px #fff35c;
+        }
+
+        .square-last-move {
+            background-color: rgba(255, 255, 51, 0.4) !important;
+        }
+
+        .square-in-check {
+            background-color: #e63946 !important;
+            animation: pulse-check 1.2s infinite;
+        }
+
+        @keyframes pulse-check {
+            0% { box-shadow: inset 0 0 0 0px rgba(255, 0, 0, 0.8); }
+            50% { box-shadow: inset 0 0 12px 4px rgba(255, 0, 0, 0.9); }
+            100% { box-shadow: inset 0 0 0 0px rgba(255, 0, 0, 0.8); }
+        }
+
+        .valid-move-dot::after {
+            content: '';
+            width: 28%;
+            height: 28%;
+            background-color: rgba(20, 83, 45, 0.65);
+            border-radius: 50%;
+            position: absolute;
+            z-index: 10;
+        }
+
+        .valid-capture-ring {
+            box-shadow: inset 0 0 0 5px rgba(220, 38, 38, 0.75) !important;
+        }
+
+        .piece {
+            transition: transform 0.15s cubic-bezier(0.2, 0, 0.13, 1.5);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .piece:hover {
+            transform: scale(1.1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+
+        body.light-mode {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
+
+        body.light-mode header,
+        body.light-mode footer {
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            color: #334155 !important;
+        }
+
+        body.light-mode header h1,
+        body.light-mode header p,
+        body.light-mode header span {
+            color: #0f172a !important;
+            -webkit-text-fill-color: #0f172a !important;
+            background-image: none !important;
+        }
+
+        body.light-mode header button {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        body.light-mode header button:hover {
+            background-color: #e2e8f0 !important;
+        }
+
+        body.light-mode .bg-slate-900 {
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            color: #0f172a !important;
+        }
+
+        body.light-mode .bg-slate-950,
+        body.light-mode .bg-slate-950\/60,
+        body.light-mode .bg-slate-950\/50,
+        body.light-mode .bg-slate-950\/70 {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        body.light-mode .bg-slate-800 {
+            background-color: #e2e8f0 !important;
+            border-color: #cbd5e1 !important;
+            color: #1e293b !important;
+        }
+
+        body.light-mode .text-slate-100,
+        body.light-mode .text-slate-200,
+        body.light-mode .text-slate-300 {
+            color: #0f172a !important;
+        }
+
+        body.light-mode .text-slate-400,
+        body.light-mode .text-slate-500 {
+            color: #475569 !important;
+        }
+
+        body.light-mode input,
+        body.light-mode select {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        body.light-mode .text-amber-100,
+        body.light-mode .text-amber-200,
+        body.light-mode .text-amber-300,
+        body.light-mode .text-amber-400,
+        body.light-mode .text-amber-500 {
+            color: #1d4ed8 !important;
+        }
+
+        body.light-mode .bg-amber-500 {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+        }
+
+        body.light-mode .bg-amber-500:hover {
+            background-color: #1d4ed8 !important;
+        }
+
+        body.light-mode .bg-clip-text {
+            background-image: none !important;
+            color: #0f172a !important;
+            -webkit-text-fill-color: #0f172a !important;
+        }
+
+        body.light-mode #famousMateContentBox .bg-slate-900\/80 {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
+        body.light-mode #famousMateContentBox .bg-slate-900\/80 p {
+            color: #f8fafc !important;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-100 flex flex-col justify-between overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 py-3 px-4 sm:px-8 flex justify-between items-center sticky top-0 z-30">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-amber-500/20">
+                <i class="fa-solid fa-chess-king"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-amber-100 bg-clip-text text-transparent">Ajedrez Real</h1>
+                <p id="subTitleHeader" class="text-xs text-slate-400 font-medium hidden sm:block">Partida local de ajedrez (Tiempo global)</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="openPracticeModal()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition flex items-center gap-2 border border-slate-700" title="Practicar movimiento de piezas">
+                <i class="fa-solid fa-graduation-cap text-amber-400"></i>
+                <span class="hidden lg:inline">Practicar Piezas</span>
+            </button>
+            <button onclick="openFamousMatesModal()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition flex items-center gap-2 border border-slate-700" title="Ver mates rápidos y famosas">
+                <i class="fa-solid fa-bolt text-amber-400"></i>
+                <span class="hidden lg:inline">Mates Famosos</span>
+            </button>
+            <button onclick="openValuesModal()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition flex items-center gap-2 border border-slate-700" title="Ver valores de piezas">
+                <i class="fa-solid fa-gem text-amber-400"></i>
+                <span class="hidden lg:inline">Valores de Piezas</span>
+            </button>
+            <button onclick="toggleTheme()" id="themeBtn" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition flex items-center gap-2 border border-slate-700">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+                <span class="hidden md:inline" id="themeText">Oscuro</span>
+            </button>
+            <button onclick="toggleSound()" id="soundBtn" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition flex items-center gap-2 border border-slate-700">
+                <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+                <span class="hidden md:inline">Sonido</span>
+            </button>
+            <button onclick="openConfigModal()" class="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition flex items-center gap-2 shadow-md shadow-amber-500/10">
+                <i class="fa-solid fa-chess"></i>
+                <span>Jugar</span>
+            </button>
+            <button onclick="resetGamePrompt()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition flex items-center gap-2 border border-slate-700">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="hidden md:inline">Reiniciar</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 flex flex-col lg:flex-row gap-6 items-center lg:items-start justify-center">
+
+        <!-- Left / Top Info: Player Black -->
+        <div class="w-full lg:w-80 flex flex-col gap-4 order-1 lg:order-1">
+            <!-- Player Black Card with Timer -->
+            <div id="playerCardBlack" class="p-4 rounded-2xl bg-slate-900 border-2 border-slate-800 transition-all duration-300 relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-950 border border-slate-700 flex items-center justify-center text-slate-100 text-lg shadow-inner">
+                            <i id="blackAvatarIcon" class="fa-solid fa-chess-pawn"></i>
+                        </div>
+                        <div>
+                            <h3 id="nameBlackDisplay" class="font-bold text-slate-100 text-base">Jugador Negras</h3>
+                            <span id="blackRoleLabel" class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Negras</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                        <div id="timerBlack" class="px-2.5 py-1 rounded-lg bg-slate-950 text-amber-400 font-mono text-sm font-bold border border-slate-800 shadow-inner flex items-center gap-1.5">
+                            <i class="fa-solid fa-stopwatch text-xs text-slate-400"></i>
+                            <span>15:00</span>
+                        </div>
+                        <div id="turnBadgeBlack" class="hidden px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold border border-amber-500/30 animate-pulse">
+                            Su Turno
+                        </div>
+                    </div>
+                </div>
+                <!-- Captured Pieces by Black -->
+                <div id="capturedByBlack" class="mt-3 min-h-[28px] flex flex-wrap gap-1 items-center bg-slate-950/60 p-2 rounded-xl text-lg text-slate-200">
+                    <span class="text-xs text-slate-500 font-medium mr-1">Capturas:</span>
+                </div>
+            </div>
+
+            <!-- Move History Panel -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex-1 flex flex-col min-h-[220px] max-h-[300px] lg:max-h-[380px]">
+                <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                    <h3 class="font-bold text-sm text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-list-ol text-amber-400"></i>
+                        Historial de Movimientos
+                    </h3>
+                    <span id="moveCountBadge" class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono">0 jugadas</span>
+                </div>
+                <div id="moveHistoryLog" class="flex-1 overflow-y-auto mt-2 space-y-1 text-sm font-mono pr-1">
+                    <div class="text-xs text-slate-500 italic text-center py-6">Las jugadas aparecerán aquí...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chess Board Center Area -->
+        <div class="flex-1 flex flex-col items-center justify-center order-2 w-full max-w-[560px]">
+            <!-- Status Alert Bar -->
+            <div id="gameStatusBanner" class="w-full mb-3 p-3 rounded-xl bg-slate-900 border border-slate-800 text-center text-sm font-semibold text-slate-300 min-h-[48px] flex items-center justify-center transition-all">
+                <span id="statusText"><i class="fa-solid fa-circle-info text-amber-400 mr-2"></i>Inicia la partida las Blancas</span>
+            </div>
+
+            <!-- Board Wrapper -->
+            <div class="relative w-full aspect-square rounded-2xl bg-slate-800 p-2 sm:p-3 shadow-2xl border-4 border-slate-800/80">
+                <div class="relative w-full h-full rounded-lg overflow-hidden border border-amber-950/30">
+                    <div id="chessBoard" class="board-grid w-full h-full">
+                        <!-- Squares generated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right / Bottom Info: Player White -->
+        <div class="w-full lg:w-80 flex flex-col gap-4 order-3">
+            <!-- Player White Card with Timer -->
+            <div id="playerCardWhite" class="p-4 rounded-2xl bg-slate-900 border-2 border-amber-500/50 transition-all duration-300 relative overflow-hidden shadow-lg shadow-amber-500/5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-900 text-lg shadow-inner">
+                            <i class="fa-solid fa-chess-pawn"></i>
+                        </div>
+                        <div>
+                            <h3 id="nameWhiteDisplay" class="font-bold text-slate-100 text-base">Jugador Blancas</h3>
+                            <span class="text-xs text-amber-400 font-semibold uppercase tracking-wider">Blancas</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                        <div id="timerWhite" class="px-2.5 py-1 rounded-lg bg-slate-950 text-amber-400 font-mono text-sm font-bold border border-slate-800 shadow-inner flex items-center gap-1.5">
+                            <i class="fa-solid fa-stopwatch text-xs text-slate-400"></i>
+                            <span>15:00</span>
+                        </div>
+                        <div id="turnBadgeWhite" class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold border border-amber-500/30 animate-pulse">
+                            Su Turno
+                        </div>
+                    </div>
+                </div>
+                <!-- Captured Pieces by White -->
+                <div id="capturedByWhite" class="mt-3 min-h-[28px] flex flex-wrap gap-1 items-center bg-slate-950/60 p-2 rounded-xl text-lg text-slate-200">
+                    <span class="text-xs text-slate-500 font-medium mr-1">Capturas:</span>
+                </div>
+            </div>
+
+            <!-- Quick Rules & Options Panel -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-400 space-y-3">
+                <h4 class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                    Información de Partida
+                </h4>
+                <ul class="space-y-1.5 list-disc list-inside text-slate-400">
+                    <li>Tiempo de juego: <strong id="timeRuleBadge" class="text-amber-400">15 minutos globales</strong>.</li>
+                    <li>Modo activo: <strong id="modeRuleBadge" class="text-slate-200">2 Jugadores Local</strong>.</li>
+                    <li>Nivel de Profesor: <strong id="diffRuleBadge" class="text-slate-200">Principiante</strong>.</li>
+                    <li>Soporta <strong class="text-slate-200">Enroque</strong> y <strong class="text-slate-200">Coronación</strong>.</li>
+                    <li>Detección estricta de <strong class="text-slate-200">Jaque Mate</strong>.</li>
+                </ul>
+                <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-slate-500">
+                    <span>Ajedrez v2.5 Standard</span>
+                    <i class="fa-solid fa-check-double text-emerald-500"></i>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Configuration & Game Setup Modal -->
+    <div id="configModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 transform transition-all max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                        <i class="fa-solid fa-sliders text-lg"></i>
+                    </div>
+                    <h3 class="font-extrabold text-slate-100 text-lg">Configuración del Juego</h3>
+                </div>
+                <button onclick="closeConfigModal()" class="text-slate-400 hover:text-slate-100 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Modo de juego -->
+                <div>
+                    <label class="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Modo de Juego</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="mode2PBtn" onclick="selectGameMode('2p')" 
+                            class="py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 transition bg-amber-500 text-slate-950 border-amber-400">
+                            <i class="fa-solid fa-user-group text-base"></i>
+                            2 Jugadores (Local)
+                        </button>
+                        <button type="button" id="modeProfesorBtn" onclick="selectGameMode('vs_profesor')" 
+                            class="py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 transition bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700">
+                            <i class="fa-solid fa-robot text-base text-amber-400"></i>
+                            Juego contra Profesor
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Nivel de dificultad (Solo si se juega contra profesor) -->
+                <div id="difficultyContainer" class="hidden">
+                    <label class="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Nivel de Dificultad del Profesor</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" id="diffEasyBtn" onclick="selectDifficulty('easy')"
+                            class="py-2 px-2 rounded-xl border text-xs font-bold transition bg-amber-500 text-slate-950 border-amber-400">
+                            Principiante
+                        </button>
+                        <button type="button" id="diffMediumBtn" onclick="selectDifficulty('medium')"
+                            class="py-2 px-2 rounded-xl border text-xs font-bold transition bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700">
+                            Intermedio
+                        </button>
+                        <button type="button" id="diffHardBtn" onclick="selectDifficulty('hard')"
+                            class="py-2 px-2 rounded-xl border text-xs font-bold transition bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700">
+                            Avanzado
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mostrar ayuda de movimiento -->
+                <div>
+                    <label class="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Ayuda de Movimiento de Piezas</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="hintsOnBtn" onclick="toggleMoveHints(true)"
+                            class="py-2 px-3 rounded-xl border font-bold text-xs transition bg-amber-500 text-slate-950 border-amber-400">
+                            <i class="fa-solid fa-eye mr-1"></i> Mostrar Ayuda
+                        </button>
+                        <button type="button" id="hintsOffBtn" onclick="toggleMoveHints(false)"
+                            class="py-2 px-3 rounded-xl border font-bold text-xs transition bg-slate-950 text-slate-300 border-slate-800">
+                            <i class="fa-solid fa-eye-slash mr-1"></i> Ocultar Ayuda
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tiempo Límite -->
+                <div>
+                    <label class="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Tiempo Global de la Partida</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" id="time5Btn" onclick="selectTimeLimit(300)" 
+                            class="py-2.5 px-3 rounded-xl border font-bold text-xs transition bg-slate-950 text-slate-300 border-slate-800">
+                            5 Minutos
+                        </button>
+                        <button type="button" id="time10Btn" onclick="selectTimeLimit(600)" 
+                            class="py-2.5 px-3 rounded-xl border font-bold text-xs transition bg-slate-950 text-slate-300 border-slate-800">
+                            10 Minutos
+                        </button>
+                        <button type="button" id="time15Btn" onclick="selectTimeLimit(900)" 
+                            class="py-2.5 px-3 rounded-xl border font-bold text-xs transition bg-amber-500 text-slate-950 border-amber-400">
+                            15 Min (Máx)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Nombres de los jugadores -->
+                <div class="space-y-3 pt-1 border-t border-slate-800">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Jugador Blancas</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-chess-king text-slate-400 absolute left-3.5 top-3.5"></i>
+                            <input type="text" id="inputWhiteName" value="Blancas" placeholder="Nombre del jugador Blancas" 
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 focus:outline-none focus:border-amber-500 font-medium">
+                        </div>
+                    </div>
+
+                    <div id="blackNameInputContainer">
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Jugador Negras</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-chess-king text-slate-500 absolute left-3.5 top-3.5"></i>
+                            <input type="text" id="inputBlackName" value="Negras" placeholder="Nombre del jugador Negras" 
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 focus:outline-none focus:border-amber-500 font-medium">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                <button onclick="closeConfigModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm transition">
+                    Cancelar
+                </button>
+                <button onclick="savePlayerNames()" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition shadow-lg shadow-amber-500/20">
+                    Guardar y Aplicar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Confirmation Modal -->
+    <div id="startConfirmModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border-2 border-amber-500/40 rounded-3xl max-w-md w-full p-6 text-center space-y-5 shadow-2xl relative overflow-hidden transform transition-all">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 flex items-center justify-center text-3xl mx-auto shadow-xl shadow-amber-500/30">
+                <i class="fa-solid fa-play"></i>
+            </div>
+            
+            <div>
+                <h3 class="text-2xl font-black text-slate-100">¡Configuración Guardada!</h3>
+                <p class="text-slate-300 mt-2 text-sm font-medium">
+                    Presiona el botón para iniciar el juego y activar el reloj de la partida.
+                </p>
+            </div>
+
+            <!-- Summary Box -->
+            <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 text-left text-xs space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400 font-bold">Modo de juego:</span>
+                    <span id="confirmModeLabel" class="text-amber-400 font-extrabold">2 Jugadores</span>
+                </div>
+                <div id="confirmDiffRow" class="flex justify-between items-center hidden">
+                    <span class="text-slate-400 font-bold">Dificultad Profesor:</span>
+                    <span id="confirmDiffLabel" class="text-amber-300 font-extrabold">Principiante</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400 font-bold">Tiempo total:</span>
+                    <span id="confirmTimeLabel" class="text-amber-400 font-extrabold">15 Minutos</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400 font-bold">Enfrentamiento:</span>
+                    <span id="confirmPlayersLabel" class="text-slate-200 font-bold">Blancas vs Negras</span>
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-center gap-3">
+                <button onclick="closeStartConfirmModal()" class="w-1/2 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm transition">
+                    Cancelar
+                </button>
+                <button onclick="confirmStartGame()" class="w-1/2 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-base transition shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-chess font-bold"></i>
+                    Comenzar Partida
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pawn Promotion Modal -->
+    <div id="promotionModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+            <h3 class="font-bold text-slate-100 text-lg">¡Coronación de Peón!</h3>
+            <p class="text-xs text-slate-400">Selecciona la pieza a la que deseas promocionar tu peón:</p>
+
+            <div class="grid grid-cols-4 gap-3 pt-2" id="promotionChoices">
+                <!-- Choice buttons generated via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-amber-500/30 rounded-3xl max-w-md w-full p-6 text-center space-y-5 shadow-2xl relative overflow-hidden">
+            <div class="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-3xl mx-auto shadow-lg shadow-amber-500/20">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            
+            <div>
+                <h2 id="gameOverTitle" class="text-2xl font-black text-slate-100">¡Fin de la Partida!</h2>
+                <p id="gameOverDesc" class="text-slate-300 mt-2 font-medium">Resultado del juego...</p>
+            </div>
+
+            <div class="pt-3 flex justify-center gap-3">
+                <button onclick="closeGameOverModal(); openConfigModal();" class="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm transition shadow-lg shadow-amber-500/20">
+                    Nueva Partida
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Piece Values Modal -->
+    <div id="valuesModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                        <i class="fa-solid fa-gem"></i>
+                    </div>
+                    <h3 class="font-extrabold text-slate-100 text-lg">Valores de las Piezas</h3>
+                </div>
+                <button onclick="closeValuesModal()" class="text-slate-400 hover:text-slate-100 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center gap-3">
+                    <span class="text-3xl text-amber-400">♙</span>
+                    <div>
+                        <h4 class="font-bold text-slate-200">Peón: 1 Punto</h4>
+                        <p class="text-xs text-slate-400">Unidad básica de valor. Avanza hacia adelante y promociona.</p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center gap-3">
+                    <span class="text-3xl text-amber-400">♘</span>
+                    <div>
+                        <h4 class="font-bold text-slate-200">Caballo: 3 Puntos</h4>
+                        <p class="text-xs text-slate-400">Pieza menor. Muy táctica y capaz de saltar sobre otras.</p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center gap-3">
+                    <span class="text-3xl text-amber-400">♗</span>
+                    <div>
+                        <h4 class="font-bold text-slate-200">Alfil: 3 Puntos</h4>
+                        <p class="text-xs text-slate-400">Pieza menor. Excelente en diagonales abiertas.</p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center gap-3">
+                    <span class="text-3xl text-amber-400">♖</span>
+                    <div>
+                        <h4 class="font-bold text-slate-200">Torre: 5 Puntos</h4>
+                        <p class="text-xs text-slate-400">Pieza mayor. Domina filas y columnas abiertas.</p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center gap-3">
+                    <span class="text-3xl text-amber-400">♕</span>
+                    <div>
+                        <h4 class="font-bold text-slate-200">Dama: 9 Puntos</h4>
+                        <p class="text-xs text-slate-400">La pieza más poderosa. Combina la Torre y el Alfil.</p>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center gap-3">
+                    <span class="text-3xl text-amber-400">♔</span>
+                    <div>
+                        <h4 class="font-bold text-slate-200">Rey: Infinito / Vital</h4>
+                        <p class="text-xs text-slate-400">Su captura finaliza la partida (Jaque Mate).</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="closeValuesModal()" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Practice Movement Modal -->
+    <div id="practiceModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <h3 class="font-extrabold text-slate-100 text-lg">Practicar Movimientos</h3>
+                </div>
+                <button onclick="closePracticeModal()" class="text-slate-400 hover:text-slate-100 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="flex flex-wrap gap-2 justify-center py-1">
+                <button id="practiceBtn_p" onclick="selectPracticePiece('p')" class="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs transition">Peón ♙</button>
+                <button id="practiceBtn_n" onclick="selectPracticePiece('n')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition">Caballo ♘</button>
+                <button id="practiceBtn_b" onclick="selectPracticePiece('b')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition">Alfil ♗</button>
+                <button id="practiceBtn_r" onclick="selectPracticePiece('r')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition">Torre ♖</button>
+                <button id="practiceBtn_q" onclick="selectPracticePiece('q')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition">Dama ♕</button>
+                <button id="practiceBtn_k" onclick="selectPracticePiece('k')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition">Rey ♔</button>
+            </div>
+
+            <div id="practiceDescText" class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 text-xs text-amber-300 font-medium text-center min-h-[48px] flex items-center justify-center">
+                Selecciona una pieza y haz clic en cualquier casilla del tablero para practicar su alcance.
+            </div>
+
+            <div class="flex justify-center">
+                <div class="w-full max-w-[320px] aspect-square rounded-xl bg-slate-800 p-2 shadow-inner border border-slate-700">
+                    <div id="practiceBoard" class="board-grid w-full h-full rounded overflow-hidden">
+                        <!-- Practice squares generated via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-2">
+                <span class="text-[11px] text-slate-500">Toca cualquier casilla para reubicar la pieza</span>
+                <button onclick="closePracticeModal()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Famous Mates Modal (Enhanced with Interactive Animated Board inside!) -->
+    <div id="famousMatesModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-slate-100 text-lg">Mates Rápidos y Famosos</h3>
+                        <p class="text-xs text-slate-400">Explicación paso a paso con tablero animado</p>
+                    </div>
+                </div>
+                <button onclick="closeFamousMatesModal()" class="text-slate-400 hover:text-slate-100 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="grid grid-cols-2 gap-2 pb-1">
+                <button id="tabMateScholar" onclick="switchFamousMateTab('scholar')" class="py-2 px-3 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs transition">
+                    Mate del Pastor
+                </button>
+                <button id="tabMateFool" onclick="switchFamousMateTab('fool')" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition">
+                    Mate del Loco
+                </button>
+            </div>
+
+            <!-- Grid Layout inside Modal: Left text & controls, Right mini animated board -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start pt-1">
+                <!-- Left Column: Explanation & Steps -->
+                <div class="space-y-3">
+                    <div id="famousMateHeaderInfo" class="p-3 bg-slate-950/70 rounded-xl border border-slate-800">
+                        <!-- Dynamic Info -->
+                    </div>
+
+                    <div class="p-3 bg-slate-950/70 rounded-xl border border-slate-800 space-y-2">
+                        <div class="flex justify-between items-center text-xs font-bold text-amber-400">
+                            <span id="famousStepIndicator">Paso 0 / 0</span>
+                            <span id="famousMoveNotationDisplay" class="font-mono text-slate-200">Inicio</span>
+                        </div>
+                        <p id="famousStepDesc" class="text-xs text-slate-300 min-h-[42px] leading-relaxed">
+                            Selecciona un mate y usa los botones para avanzar jugada a jugada.
+                        </p>
+                        <!-- Controls -->
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <button onclick="prevFamousStep()" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-slate-700">
+                                <i class="fa-solid fa-arrow-left"></i> Anterior
+                            </button>
+                            <button onclick="nextFamousStep()" class="py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20">
+                                Siguiente <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Animated Mini Board -->
+                <div class="flex flex-col items-center justify-center bg-slate-950/80 p-3 rounded-2xl border border-slate-800">
+                    <div class="w-full max-w-[260px] aspect-square rounded-xl bg-slate-800 p-1.5 shadow-xl border border-slate-700">
+                        <div id="modalChessBoard" class="board-grid w-full h-full rounded overflow-hidden">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                    <div class="mt-2.5 flex items-center gap-2">
+                        <button onclick="loadThisFamousMateToMain()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs transition border border-slate-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chess-board"></i> Cargar en Tablero Principal
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-slate-800">
+                <button onclick="closeFamousMatesModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+                    Cerrar Guía
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 border-t border-slate-900 py-3 text-center text-xs text-slate-500">
+        CLP Nivel Secundaria © 2026 - Diseño y desarrollo: Ing. Adrian
+    </footer>
+
+    <script>
+        const UNICODE_PIECES = {
+            'w_k': '♔', 'w_q': '♕', 'w_r': '♖', 'w_b': '♗', 'w_n': '♘', 'w_p': '♙',
+            'b_k': '♚', 'b_q': '♛', 'b_r': '♜', 'b_b': '♝', 'b_n': '♞', 'b_p': '♟'
+        };
+
+        const PIECE_NAMES = {
+            'p': 'Peón', 'r': 'Torre', 'n': 'Caballo', 'b': 'Alfil', 'q': 'Dama', 'k': 'Rey'
+        };
+
+        const PIECE_VALUES = {
+            'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9, 'k': 0
+        };
+
+        let players = {
+            w: 'Blancas',
+            b: 'Negras'
+        };
+
+        let gameMode = '2p'; 
+        let aiDifficulty = 'easy'; 
+        let showMoveHints = true;
+        let selectedTimeLimitSeconds = 15 * 60; 
+
+        let turn = 'w'; 
+        let board = [];
+        let selectedSquare = null; 
+        let validMoves = []; 
+        let lastMove = null; 
+        let capturedPieces = { w: [], b: [] };
+        let moveHistory = [];
+        let soundEnabled = true;
+        let isGameOver = false;
+        let isGameStarted = false; 
+        let isDarkMode = true;
+
+        let gameTimeLeft = selectedTimeLimitSeconds;
+        let timerInterval = null;
+
+        // Structured Famous Mates with full step-by-step board animation sequence
+        const FAMOUS_MATES_GUIDE = {
+            scholar: {
+                title: "El Mate del Pastor (4 Jugadas)",
+                subtitle: "El ataque rápido más popular del ajedrez",
+                concept: "Apunta directamente al punto más débil del rival (f7) combinando la fuerza del Alfil y la Dama.",
+                sequence: [
+                    { board: null, move: "Posición Inicial", desc: "Las piezas están listas en su posición de inicio." },
+                    { 
+                        custom: (b) => { b[6][4] = null; b[4][4] = { type: 'p', color: 'w', moved: true }; },
+                        move: "1. e4", desc: "Las blancas avanzan su peón de rey para abrir diagonales." 
+                    },
+                    { 
+                        custom: (b) => { b[1][4] = null; b[3][4] = { type: 'p', color: 'b', moved: true }; },
+                        move: "1... e5", desc: "Las negras responden simétricamente ocupando el centro." 
+                    },
+                    { 
+                        custom: (b) => { b[7][5] = null; b[4][2] = { type: 'b', color: 'w', moved: true }; },
+                        move: "2. Ac4", desc: "El alfil blanco sale amenazando la casilla f7 del rey negro." 
+                    },
+                    { 
+                        custom: (b) => { b[0][1] = null; b[2][2] = { type: 'n', color: 'b', moved: true }; },
+                        move: "2... Cc6", desc: "Las negras desarrollan su caballo protegiendo e5." 
+                    },
+                    { 
+                        custom: (b) => { b[7][3] = null; b[3][7] = { type: 'q', color: 'w', moved: true }; },
+                        move: "3. Dh5", desc: "La Dama blanca sale a crear una doble amenaza letal sobre f7." 
+                    },
+                    { 
+                        custom: (b) => { b[0][6] = null; b[2][5] = { type: 'n', color: 'b', moved: true }; },
+                        move: "3... Cf6??", desc: "Error grave de las negras al intentar bloquear, descuidando f7." 
+                    },
+                    { 
+                        custom: (b) => { b[3][7] = null; b[1][5] = { type: 'q', color: 'w', moved: true }; b[1][5].isCapture = true; },
+                        move: "4. Dxf7#", desc: "¡Jaque Mate! La Dama captura en f7 apoyada por el alfil. El rey no tiene escapatoria.",
+                        checkPos: { r: 0, c: 4 }
+                    }
+                ]
+            },
+            fool: {
+                title: "El Mate del Loco (2 Jugadas)",
+                subtitle: "El jaque mate más rápido posible",
+                concept: "Ocurre por descuidos fatales en los peones del flanco de rey al inicio.",
+                sequence: [
+                    { board: null, move: "Posición Inicial", desc: "Tablero listo." },
+                    { 
+                        custom: (b) => { b[6][5] = null; b[5][5] = { type: 'p', color: 'w', moved: true }; b[1][4] = null; b[3][4] = { type: 'p', color: 'b', moved: true }; },
+                        move: "1. f3 e5", desc: "Las blancas mueven un peón que debilita fatalmente la diagonal de su Rey." 
+                    },
+                    { 
+                        custom: (b) => { b[6][6] = null; b[4][6] = { type: 'p', color: 'w', moved: true }; },
+                        move: "2. g4??", desc: "Segundo movimiento desastroso que abre por completo la defensa del rey blanco." 
+                    },
+                    { 
+                        custom: (b) => { b[0][3] = null; b[4][7] = { type: 'q', color: 'b', moved: true }; },
+                        move: "2... Qh4#", desc: "¡Jaque Mate relámpago! La Dama negra entra en diagonal dando jaque definitivo.",
+                        checkPos: { r: 7, c: 4 }
+                    }
+                ]
+            }
+        };
+
+        let currentActiveMateTab = 'scholar';
+        let currentFamousStepIndex = 0;
+        let currentModalBoardState = [];
+
+        function switchFamousMateTab(tabKey) {
+            currentActiveMateTab = tabKey;
+            currentFamousStepIndex = 0;
+            ['scholar', 'fool'].forEach(k => {
+                const btn = document.getElementById(`tabMate${k.charAt(0).toUpperCase() + k.slice(1)}`);
+                if (k === tabKey) {
+                    btn.className = "py-2 px-3 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs transition";
+                } else {
+                    btn.className = "py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition";
+                }
+            });
+            renderFamousMateStep();
+        }
+
+        function renderFamousMateStep() {
+            const data = FAMOUS_MATES_GUIDE[currentActiveMateTab];
+            const stepData = data.sequence[currentFamousStepIndex];
+
+            // Rebuild board up to current step index
+            currentModalBoardState = createInitialBoard();
+            for (let i = 1; i <= currentFamousStepIndex; i++) {
+                if (data.sequence[i].custom) {
+                    data.sequence[i].custom(currentModalBoardState);
+                }
+            }
+
+            // Update text headers
+            document.getElementById('famousMateHeaderInfo').innerHTML = `
+                <h4 class="font-extrabold text-amber-400 text-sm">${data.title}</h4>
+                <p class="text-[11px] text-slate-300 mt-1">${data.concept}</p>
+            `;
+
+            document.getElementById('famousStepIndicator').innerText = `Paso ${currentFamousStepIndex + 1} de ${data.sequence.length}`;
+            document.getElementById('famousMoveNotationDisplay').innerText = stepData.move;
+            document.getElementById('famousStepDesc').innerText = stepData.desc;
+
+            // Render mini board in modal
+            const modalBoardEl = document.getElementById('modalChessBoard');
+            modalBoardEl.innerHTML = '';
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const sq = document.createElement('div');
+                    const isLight = (r + c) % 2 === 0;
+                    sq.className = `relative flex items-center justify-center ${isLight ? 'square-light' : 'square-dark'}`;
+
+                    if (stepData.checkPos && stepData.checkPos.r === r && stepData.checkPos.c === c) {
+                        sq.classList.add('square-in-check');
+                    }
+
+                    const piece = currentModalBoardState[r][c];
+                    if (piece) {
+                        const span = document.createElement('span');
+                        span.className = `piece text-2xl font-black ${piece.color === 'w' ? 'text-slate-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-slate-950 drop-shadow-[0_1px_1px_rgba(255,255,255,0.4)]'}`;
+                        span.innerText = UNICODE_PIECES[`${piece.color}_${piece.type}`];
+                        sq.appendChild(span);
+                    }
+                    modalBoardEl.appendChild(sq);
+                }
+            }
+        }
+
+        function nextFamousStep() {
+            const data = FAMOUS_MATES_GUIDE[currentActiveMateTab];
+            if (currentFamousStepIndex < data.sequence.length - 1) {
+                currentFamousStepIndex++;
+                renderFamousMateStep();
+            }
+        }
+
+        function prevFamousStep() {
+            if (currentFamousStepIndex > 0) {
+                currentFamousStepIndex--;
+                renderFamousMateStep();
+            }
+        }
+
+        function openFamousMatesModal() {
+            speakText("Mates rápidos y famosos explicados paso a paso");
+            switchFamousMateTab('scholar');
+            document.getElementById('famousMatesModal').classList.remove('hidden');
+        }
+
+        function closeFamousMatesModal() {
+            document.getElementById('famousMatesModal').classList.add('hidden');
+        }
+
+        function loadThisFamousMateToMain() {
+            closeFamousMatesModal();
+            isGameStarted = true;
+            stopTimer();
+            board = currentModalBoardState.map(row => row.map(cell => cell ? { ...cell } : null));
+            selectedSquare = null;
+            validMoves = [];
+            moveHistory = [{ player: 'Sistema', move: `Cargado: ${FAMOUS_MATES_GUIDE[currentActiveMateTab].title}`, color: 'w' }];
+            isGameOver = true;
+            updateUI();
+            renderBoard();
+            speakText("Posición cargada exitosamente en el tablero principal.");
+        }
+
+        function speakText(text) {
+            if (!soundEnabled || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-ES';
+            utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            icon.className = soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
+            speakText(soundEnabled ? "Sonido activado" : "Sonido desactivado");
+        }
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('light-mode', !isDarkMode);
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            if (isDarkMode) {
+                icon.className = 'fa-solid fa-moon';
+                text.innerText = 'Oscuro';
+            } else {
+                icon.className = 'fa-solid fa-sun';
+                text.innerText = 'Claro';
+            }
+        }
+
+        function openConfigModal() {
+            document.getElementById('configModal').classList.remove('hidden');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('configModal').classList.add('hidden');
+        }
+
+        function closeStartConfirmModal() {
+            document.getElementById('startConfirmModal').classList.add('hidden');
+        }
+
+        function openValuesModal() {
+            document.getElementById('valuesModal').classList.remove('hidden');
+        }
+
+        function closeValuesModal() {
+            document.getElementById('valuesModal').classList.add('hidden');
+        }
+
+        function openPracticeModal() {
+            document.getElementById('practiceModal').classList.remove('hidden');
+            initPracticeBoard('p');
+        }
+
+        function closePracticeModal() {
+            document.getElementById('practiceModal').classList.add('hidden');
+        }
+
+        function selectGameMode(mode) {
+            gameMode = mode;
+            const btn2P = document.getElementById('mode2PBtn');
+            const btnProf = document.getElementById('modeProfesorBtn');
+            const diffCont = document.getElementById('difficultyContainer');
+            const blackContainer = document.getElementById('blackNameInputContainer');
+            const inputBlack = document.getElementById('inputBlackName');
+
+            if (mode === '2p') {
+                btn2P.className = "py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 transition bg-amber-500 text-slate-950 border-amber-400";
+                btnProf.className = "py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 transition bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700";
+                diffCont.classList.add('hidden');
+                blackContainer.classList.remove('hidden');
+                inputBlack.value = "Negras";
+            } else {
+                btnProf.className = "py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 transition bg-amber-500 text-slate-950 border-amber-400";
+                btn2P.className = "py-2.5 px-3 rounded-xl border font-bold text-xs flex flex-col items-center gap-1 transition bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700";
+                diffCont.classList.remove('hidden');
+                blackContainer.classList.add('hidden');
+                inputBlack.value = "Profesor";
+            }
+        }
+
+        function selectDifficulty(diff) {
+            aiDifficulty = diff;
+            ['easy', 'medium', 'hard'].forEach(d => {
+                const btn = document.getElementById(`diff${d.charAt(0).toUpperCase() + d.slice(1)}Btn`);
+                if (d === diff) {
+                    btn.className = "py-2 px-2 rounded-xl border text-xs font-bold transition bg-amber-500 text-slate-950 border-amber-400";
+                } else {
+                    btn.className = "py-2 px-2 rounded-xl border text-xs font-bold transition bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700";
+                }
+            });
+        }
+
+        function toggleMoveHints(status) {
+            showMoveHints = status;
+            const btnOn = document.getElementById('hintsOnBtn');
+            const btnOff = document.getElementById('hintsOffBtn');
+            if (status) {
+                btnOn.className = "py-2 px-3 rounded-xl border font-bold text-xs transition bg-amber-500 text-slate-950 border-amber-400";
+                btnOff.className = "py-2 px-3 rounded-xl border font-bold text-xs transition bg-slate-950 text-slate-300 border-slate-800";
+            } else {
+                btnOff.className = "py-2 px-3 rounded-xl border font-bold text-xs transition bg-amber-500 text-slate-950 border-amber-400";
+                btnOn.className = "py-2 px-3 rounded-xl border font-bold text-xs transition bg-slate-950 text-slate-300 border-slate-800";
+            }
+        }
+
+        function selectTimeLimit(seconds) {
+            selectedTimeLimitSeconds = seconds;
+            [300, 600, 900].forEach(s => {
+                const btn = document.getElementById(`time${s === 300 ? 5 : s === 600 ? 10 : 15}Btn`);
+                if (s === seconds) {
+                    btn.className = "py-2.5 px-3 rounded-xl border font-bold text-xs transition bg-amber-500 text-slate-950 border-amber-400";
+                } else {
+                    btn.className = "py-2.5 px-3 rounded-xl border font-bold text-xs transition bg-slate-950 text-slate-300 border-slate-800";
+                }
+            });
+        }
+
+        function savePlayerNames() {
+            const wName = document.getElementById('inputWhiteName').value.trim() || 'Blancas';
+            const bName = document.getElementById('inputBlackName').value.trim() || (gameMode === 'vs_profesor' ? 'Profesor' : 'Negras');
+
+            players.w = wName;
+            players.b = bName;
+
+            document.getElementById('nameWhiteDisplay').innerText = wName;
+            document.getElementById('nameBlackDisplay').innerText = bName;
+
+            document.getElementById('confirmModeLabel').innerText = gameMode === '2p' ? '2 Jugadores (Local)' : 'Juego contra Profesor';
+            const diffRow = document.getElementById('confirmDiffRow');
+            if (gameMode === 'vs_profesor') {
+                diffRow.classList.remove('hidden');
+                document.getElementById('confirmDiffLabel').innerText = aiDifficulty === 'easy' ? 'Principiante' : aiDifficulty === 'medium' ? 'Intermedio' : 'Avanzado';
+            } else {
+                diffRow.classList.add('hidden');
+            }
+
+            document.getElementById('confirmTimeLabel').innerText = `${selectedTimeLimitSeconds / 60} Minutos`;
+            document.getElementById('confirmPlayersLabel').innerText = `${wName} vs ${bName}`;
+
+            closeConfigModal();
+            document.getElementById('startConfirmModal').classList.remove('hidden');
+        }
+
+        function confirmStartGame() {
+            closeStartConfirmModal();
+            resetGame();
+        }
+
+        function resetGamePrompt() {
+            openConfigModal();
+        }
+
+        function createInitialBoard() {
+            let b = Array(8).fill(null).map(() => Array(8).fill(null));
+            const setupRow = (row, color) => {
+                const pieces = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
+                pieces.forEach((type, col) => {
+                    b[row][col] = { type, color, moved: false };
+                });
+            };
+            setupRow(0, 'b');
+            for (let c = 0; c < 8; c++) b[1][c] = { type: 'p', color: 'b', moved: false };
+            for (let c = 0; c < 8; c++) b[6][c] = { type: 'p', color: 'w', moved: false };
+            setupRow(7, 'w');
+            return b;
+        }
+
+        function resetGame() {
+            board = createInitialBoard();
+            turn = 'w';
+            selectedSquare = null;
+            validMoves = [];
+            lastMove = null;
+            capturedPieces = { w: [], b: [] };
+            moveHistory = [];
+            isGameOver = false;
+            isGameStarted = true;
+
+            gameTimeLeft = selectedTimeLimitSeconds;
+            stopTimer();
+            startTimer();
+
+            updateUI();
+            renderBoard();
+            speakText("Partida iniciada. Mueven las Blancas.");
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!isGameStarted || isGameOver) return;
+                gameTimeLeft--;
+                updateTimersDisplay();
+                if (gameTimeLeft <= 0) {
+                    stopTimer();
+                    endGameByTime();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        function updateTimersDisplay() {
+            const mins = Math.floor(gameTimeLeft / 60);
+            const secs = gameTimeLeft % 60;
+            const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            document.getElementById('timerWhite').querySelector('span').innerText = timeStr;
+            document.getElementById('timerBlack').querySelector('span').innerText = timeStr;
+        }
+
+        function endGameByTime() {
+            isGameOver = true;
+            const winner = turn === 'w' ? players.b : players.w;
+            document.getElementById('gameOverTitle').innerText = "¡Tiempo Agotado!";
+            document.getElementById('gameOverDesc').innerText = `Se ha agotado el tiempo de la partida. ¡Gana ${winner}!`;
+            document.getElementById('gameOverModal').classList.remove('hidden');
+            speakText(`Tiempo agotado. Gana ${winner}`);
+        }
+
+        function closeGameOverModal() {
+            document.getElementById('gameOverModal').classList.add('hidden');
+        }
+
+        function getRawPseudoMoves(r, c, currentBoard) {
+            const piece = currentBoard[r][c];
+            if (!piece) return [];
+            const moves = [];
+            const color = piece.color;
+            const type = piece.type;
+
+            const addMove = (tr, tc, special = null) => {
+                if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+                    const target = currentBoard[tr][tc];
+                    if (!target) {
+                        moves.push({ r: tr, c: tc, special });
+                    } else {
+                        if (target.color !== color) {
+                            moves.push({ r: tr, c: tc, special: 'capture' });
+                        }
+                    }
+                }
+            };
+
+            if (type === 'p') {
+                const dir = color === 'w' ? -1 : 1;
+                const startRow = color === 'w' ? 6 : 1;
+                
+                const r1 = r + dir;
+                if (r1 >= 0 && r1 < 8 && !currentBoard[r1][c]) {
+                    const isPromo = (color === 'w' && r1 === 0) || (color === 'b' && r1 === 7);
+                    moves.push({ r: r1, c: c, special: isPromo ? 'promotion' : null });
+
+                    const r2 = r + dir * 2;
+                    if (r === startRow && !currentBoard[r2][c]) {
+                        moves.push({ r: r2, c: c, special: 'double_pawn' });
+                    }
+                }
+
+                [-1, 1].forEach(dc => {
+                    const tr = r + dir;
+                    const tc = c + dc;
+                    if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+                        const target = currentBoard[tr][tc];
+                        if (target && target.color !== color) {
+                            const isPromo = (color === 'w' && tr === 0) || (color === 'b' && tr === 7);
+                            moves.push({ r: tr, c: tc, special: isPromo ? 'promotion' : 'capture' });
+                        }
+                    }
+                });
+            } else if (type === 'n') {
+                const offsets = [
+                    [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+                    [1, -2], [1, 2], [2, -1], [2, 1]
+                ];
+                offsets.forEach(([dr, dc]) => addMove(r + dr, c + dc));
+            } else if (type === 'b') {
+                const dirs = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+                dirs.forEach(([dr, dc]) => {
+                    let tr = r + dr, tc = c + dc;
+                    while (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+                        const target = currentBoard[tr][tc];
+                        if (!target) {
+                            moves.push({ r: tr, c: tc });
+                        } else {
+                            if (target.color !== color) moves.push({ r: tr, c: tc, special: 'capture' });
+                            break;
+                        }
+                        tr += dr; tc += dc;
+                    }
+                });
+            } else if (type === 'r') {
+                const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                dirs.forEach(([dr, dc]) => {
+                    let tr = r + dr, tc = c + dc;
+                    while (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+                        const target = currentBoard[tr][tc];
+                        if (!target) {
+                            moves.push({ r: tr, c: tc });
+                        } else {
+                            if (target.color !== color) moves.push({ r: tr, c: tc, special: 'capture' });
+                            break;
+                        }
+                        tr += dr; tc += dc;
+                    }
+                });
+            } else if (type === 'q') {
+                const dirs = [[-1, -1], [-1, 1], [1, -1], [1, 1], [-1, 0], [1, 0], [0, -1], [0, 1]];
+                dirs.forEach(([dr, dc]) => {
+                    let tr = r + dr, tc = c + dc;
+                    while (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+                        const target = currentBoard[tr][tc];
+                        if (!target) {
+                            moves.push({ r: tr, c: tc });
+                        } else {
+                            if (target.color !== color) moves.push({ r: tr, c: tc, special: 'capture' });
+                            break;
+                        }
+                        tr += dr; tc += dc;
+                    }
+                });
+            } else if (type === 'k') {
+                const dirs = [[-1, -1], [-1, 1], [1, -1], [1, 1], [-1, 0], [1, 0], [0, -1], [0, 1]];
+                dirs.forEach(([dr, dc]) => addMove(r + dr, c + dc));
+
+                if (!piece.moved && !isSquareUnderAttackSimple(r, c, color, currentBoard)) {
+                    const rookRight = currentBoard[r][7];
+                    if (rookRight && rookRight.type === 'r' && !rookRight.moved &&
+                        !currentBoard[r][5] && !currentBoard[r][6] &&
+                        !isSquareUnderAttackSimple(r, 5, color, currentBoard) &&
+                        !isSquareUnderAttackSimple(r, 6, color, currentBoard)) {
+                        moves.push({ r: r, c: 6, special: 'castling_kingside' });
+                    }
+                    const rookLeft = currentBoard[r][0];
+                    if (rookLeft && rookLeft.type === 'r' && !rookLeft.moved &&
+                        !currentBoard[r][1] && !currentBoard[r][2] && !currentBoard[r][3] &&
+                        !isSquareUnderAttackSimple(r, 2, color, currentBoard) &&
+                        !isSquareUnderAttackSimple(r, 3, color, currentBoard)) {
+                        moves.push({ r: r, c: 2, special: 'castling_queenside' });
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function isSquareUnderAttackSimple(r, c, byColor, currentBoard) {
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const p = currentBoard[row][col];
+                    if (p && p.color === byColor) {
+                        const type = p.type;
+                        if (type === 'p') {
+                            const dir = byColor === 'w' ? -1 : 1;
+                            if (row + dir === r && (col - 1 === c || col + 1 === c)) return true;
+                        } else if (type === 'n') {
+                            const dr = Math.abs(row - r);
+                            const dc = Math.abs(col - c);
+                            if ((dr === 2 && dc === 1) || (dr === 1 && dc === 2)) return true;
+                        } else if (type === 'k') {
+                            if (Math.abs(row - r) <= 1 && Math.abs(col - c) <= 1) return true;
+                        } else if (type === 'b' || type === 'r' || type === 'q') {
+                            const pseudo = getRawPseudoMoves(row, col, currentBoard);
+                            if (pseudo.some(m => m.r === r && m.c === c)) return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function isSquareUnderAttack(r, c, byColor, currentBoard) {
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const p = currentBoard[row][col];
+                    if (p && p.color === byColor) {
+                        const pseudo = getRawPseudoMoves(row, col, currentBoard);
+                        if (pseudo.some(m => m.r === r && m.c === c)) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function findKing(color, currentBoard) {
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const p = currentBoard[r][c];
+                    if (p && p.type === 'k' && p.color === color) return { r, c };
+                }
+            }
+            return null;
+        }
+
+        function getLegalMoves(r, c, currentBoard) {
+            const piece = currentBoard[r][c];
+            if (!piece) return [];
+            const pseudo = getRawPseudoMoves(r, c, currentBoard);
+            const legal = [];
+            const opponentColor = piece.color === 'w' ? 'b' : 'w';
+
+            pseudo.forEach(move => {
+                const tempBoard = currentBoard.map(row => row.map(cell => cell ? { ...cell } : null));
+                tempBoard[move.r][move.c] = tempBoard[r][c];
+                tempBoard[r][c] = null;
+
+                if (piece.type === 'k') {
+                    if (move.special === 'castling_kingside') {
+                        tempBoard[r][5] = tempBoard[r][7];
+                        tempBoard[r][7] = null;
+                    } else if (move.special === 'castling_queenside') {
+                        tempBoard[r][3] = tempBoard[r][0];
+                        tempBoard[r][0] = null;
+                    }
+                }
+
+                const kingPos = findKing(piece.color, tempBoard);
+                if (kingPos && !isSquareUnderAttack(kingPos.r, kingPos.c, opponentColor, tempBoard)) {
+                    legal.push(move);
+                }
+            });
+
+            return legal;
+        }
+
+        function hasAnyLegalMoves(color, currentBoard) {
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const p = currentBoard[r][c];
+                    if (p && p.color === color) {
+                        const moves = getLegalMoves(r, c, currentBoard);
+                        if (moves.length > 0) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('chessBoard');
+            boardEl.innerHTML = '';
+
+            const kingPos = findKing(turn, board);
+            const inCheck = kingPos ? isSquareUnderAttack(kingPos.r, kingPos.c, turn === 'w' ? 'b' : 'w', board) : false;
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const square = document.createElement('div');
+                    const isLight = (r + c) % 2 === 0;
+                    square.className = `relative flex items-center justify-center cursor-pointer ${isLight ? 'square-light' : 'square-dark'}`;
+                    square.dataset.r = r;
+                    square.dataset.c = c;
+
+                    if (lastMove && ((lastMove.from.r === r && lastMove.from.c === c) || (lastMove.to.r === r && lastMove.to.c === c))) {
+                        square.classList.add('square-last-move');
+                    }
+
+                    if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) {
+                        square.classList.add('square-selected');
+                    }
+
+                    if (inCheck && kingPos && kingPos.r === r && kingPos.c === c) {
+                        square.classList.add('square-in-check');
+                    }
+
+                    if (showMoveHints) {
+                        const validMoveMatch = validMoves.find(m => m.r === r && m.c === c);
+                        if (validMoveMatch) {
+                            if (board[r][c] || validMoveMatch.special === 'capture') {
+                                square.classList.add('valid-capture-ring');
+                            } else {
+                                square.classList.add('valid-move-dot');
+                            }
+                        }
+                    }
+
+                    const piece = board[r][c];
+                    if (piece) {
+                        const pieceSpan = document.createElement('span');
+                        pieceSpan.className = `piece text-3xl sm:text-4xl font-black ${piece.color === 'w' ? 'text-slate-100 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-slate-950 drop-shadow-[0_1px_2px_rgba(255,255,255,0.4)]'}`;
+                        pieceSpan.innerText = UNICODE_PIECES[`${piece.color}_${piece.type}`];
+                        square.appendChild(pieceSpan);
+                    }
+
+                    square.addEventListener('click', () => handleSquareClick(r, c));
+                    boardEl.appendChild(square);
+                }
+            }
+        }
+
+        function handleSquareClick(r, c) {
+            if (!isGameStarted || isGameOver) {
+                if (!isGameStarted) openConfigModal();
+                return;
+            }
+
+            if (gameMode === 'vs_profesor' && turn === 'b') return;
+
+            const clickedPiece = board[r][c];
+
+            if (selectedSquare) {
+                const moveMatch = validMoves.find(m => m.r === r && m.c === c);
+                if (moveMatch) {
+                    executeMove(selectedSquare.r, selectedSquare.c, r, c, moveMatch.special);
+                    selectedSquare = null;
+                    validMoves = [];
+                    renderBoard();
+
+                    if (!isGameOver && gameMode === 'vs_profesor' && turn === 'b') {
+                        setTimeout(makeAiMove, 500);
+                    }
+                    return;
+                }
+            }
+
+            if (clickedPiece && clickedPiece.color === turn) {
+                selectedSquare = { r, c };
+                validMoves = getLegalMoves(r, c, board);
+                renderBoard();
+            } else {
+                selectedSquare = null;
+                validMoves = [];
+                renderBoard();
+            }
+        }
+
+        function executeMove(fromR, fromC, toR, toC, special) {
+            const piece = board[fromR][fromC];
+            const target = board[toR][toC];
+
+            if (target) {
+                capturedPieces[piece.color].push(target.type);
+            }
+
+            if (special === 'promotion') {
+                if (gameMode === 'vs_profesor' && piece.color === 'b') {
+                    board[toR][toC] = { type: 'q', color: 'b', moved: true };
+                } else if (piece.color === 'w' && gameMode === '2p' || (gameMode === 'vs_profesor' && piece.color === 'w')) {
+                    openPromotionModal(fromR, fromC, toR, toC);
+                    return;
+                } else {
+                    board[toR][toC] = { type: 'q', color: piece.color, moved: true };
+                }
+            } else if (special === 'castling_kingside') {
+                board[toR][toC] = { ...piece, moved: true };
+                board[fromR][fromC] = null;
+                board[toR][5] = { ...board[toR][7], moved: true };
+                board[toR][7] = null;
+            } else if (special === 'castling_queenside') {
+                board[toR][toC] = { ...piece, moved: true };
+                board[fromR][fromC] = null;
+                board[toR][3] = { ...board[toR][0], moved: true };
+                board[toR][0] = null;
+            } else {
+                board[toR][toC] = { ...piece, moved: true };
+                board[fromR][fromC] = null;
+            }
+
+            lastMove = { from: { r: fromR, c: fromC }, to: { r: toR, c: toC } };
+            
+            const pieceName = PIECE_NAMES[piece.type];
+            const notation = `${pieceName} a ${String.fromCharCode(97 + toC)}${8 - toR}`;
+            moveHistory.push({ player: players[piece.color], move: notation, color: piece.color });
+
+            turn = turn === 'w' ? 'b' : 'w';
+            updateUI();
+            checkGameState();
+        }
+
+        function openPromotionModal(fromR, fromC, toR, toC) {
+            const modal = document.getElementById('promotionModal');
+            const choices = document.getElementById('promotionChoices');
+            choices.innerHTML = '';
+
+            ['q', 'r', 'b', 'n'].forEach(type => {
+                const btn = document.createElement('button');
+                btn.className = "p-3 rounded-2xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-100 text-3xl font-bold flex items-center justify-center transition border border-slate-700";
+                btn.innerText = UNICODE_PIECES[`w_${type}`];
+                btn.onclick = () => {
+                    board[toR][toC] = { type: type, color: 'w', moved: true };
+                    board[fromR][fromC] = null;
+                    lastMove = { from: { r: fromR, c: fromC }, to: { r: toR, c: toC } };
+                    moveHistory.push({ player: players.w, move: `Promoción a ${PIECE_NAMES[type]}`, color: 'w' });
+                    modal.classList.add('hidden');
+                    turn = 'b';
+                    updateUI();
+                    renderBoard();
+                    checkGameState();
+
+                    if (!isGameOver && gameMode === 'vs_profesor') {
+                        setTimeout(makeAiMove, 500);
+                    }
+                };
+                choices.appendChild(btn);
+            });
+
+            modal.classList.remove('hidden');
+        }
+
+        function checkGameState() {
+            const hasMoves = hasAnyLegalMoves(turn, board);
+            const kingPos = findKing(turn, board);
+            const inCheck = kingPos ? isSquareUnderAttack(kingPos.r, kingPos.c, turn === 'w' ? 'b' : 'w', board) : false;
+
+            if (!hasMoves) {
+                isGameOver = true;
+                stopTimer();
+                const winner = turn === 'w' ? players.b : players.w;
+                const statusTitle = inCheck ? "¡Jaque Mate!" : "¡Rey Ahogado (Tablas)!";
+                const statusDesc = inCheck ? `Partida finalizada. ¡Gana ${winner}!` : "El bando en turno no tiene movimientos legales posibles.";
+                
+                document.getElementById('gameOverTitle').innerText = statusTitle;
+                document.getElementById('gameOverDesc').innerText = statusDesc;
+                document.getElementById('gameOverModal').classList.remove('hidden');
+                speakText(statusTitle);
+            } else if (inCheck) {
+                speakText("¡Jaque!");
+            }
+        }
+
+        function makeAiMove() {
+            if (isGameOver) return;
+            const allMoves = [];
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const p = board[r][c];
+                    if (p && p.color === 'b') {
+                        const legal = getLegalMoves(r, c, board);
+                        legal.forEach(m => {
+                            allMoves.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, special: m.special });
+                        });
+                    }
+                }
+            }
+
+            if (allMoves.length === 0) return;
+
+            let selectedMove = null;
+
+            if (aiDifficulty === 'easy') {
+                selectedMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+            } else {
+                let bestScore = -99999;
+                allMoves.forEach(m => {
+                    const tempBoard = board.map(row => row.map(cell => cell ? { ...cell } : null));
+                    const target = tempBoard[m.toR][m.toC];
+                    let score = target ? PIECE_VALUES[target.type] * 10 : 0;
+                    
+                    if (aiDifficulty === 'hard') {
+                        score += (m.toR * 0.5);
+                    }
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        selectedMove = m;
+                    }
+                });
+                if (!selectedMove) selectedMove = allMoves[0];
+            }
+
+            if (selectedMove) {
+                executeMove(selectedMove.fromR, selectedMove.fromC, selectedMove.toR, selectedMove.toC, selectedMove.special);
+                renderBoard();
+            }
+        }
+
+        function updateUI() {
+            const badgeW = document.getElementById('turnBadgeWhite');
+            const badgeB = document.getElementById('turnBadgeBlack');
+            const cardW = document.getElementById('playerCardWhite');
+            const cardB = document.getElementById('playerCardBlack');
+            const statusText = document.getElementById('statusText');
+
+            if (turn === 'w') {
+                badgeW.classList.remove('hidden');
+                badgeB.classList.add('hidden');
+                cardW.className = "p-4 rounded-2xl bg-slate-900 border-2 border-amber-500/50 transition-all duration-300 relative overflow-hidden shadow-lg shadow-amber-500/5";
+                cardB.className = "p-4 rounded-2xl bg-slate-900 border-2 border-slate-800 transition-all duration-300 relative overflow-hidden";
+                statusText.innerHTML = `<i class="fa-solid fa-circle-info text-amber-400 mr-2"></i>Turno de <strong>${players.w}</strong> (Blancas)`;
+            } else {
+                badgeB.classList.remove('hidden');
+                badgeW.classList.add('hidden');
+                cardB.className = "p-4 rounded-2xl bg-slate-900 border-2 border-amber-500/50 transition-all duration-300 relative overflow-hidden shadow-lg shadow-amber-500/5";
+                cardW.className = "p-4 rounded-2xl bg-slate-900 border-2 border-slate-800 transition-all duration-300 relative overflow-hidden";
+                statusText.innerHTML = `<i class="fa-solid fa-circle-info text-amber-400 mr-2"></i>Turno de <strong>${players.b}</strong> (Negras)`;
+            }
+
+            const capW = document.getElementById('capturedByWhite');
+            const capB = document.getElementById('capturedByBlack');
+            
+            capW.innerHTML = '<span class="text-xs text-slate-500 font-medium mr-1">Capturas:</span>' + 
+                capturedPieces.w.map(p => UNICODE_PIECES[`b_${p}`]).join(' ');
+            capB.innerHTML = '<span class="text-xs text-slate-500 font-medium mr-1">Capturas:</span>' + 
+                capturedPieces.b.map(p => UNICODE_PIECES[`w_${p}`]).join(' ');
+
+            const logEl = document.getElementById('moveHistoryLog');
+            if (moveHistory.length === 0) {
+                logEl.innerHTML = '<div class="text-xs text-slate-500 italic text-center py-6">Las jugadas aparecerán aquí...</div>';
+                document.getElementById('moveCountBadge').innerText = '0 jugadas';
+            } else {
+                logEl.innerHTML = moveHistory.map((m, idx) => `
+                    <div class="flex justify-between items-center py-1 px-2 rounded hover:bg-slate-800/60 ${m.color === 'w' ? 'text-amber-200' : 'text-slate-300'}">
+                        <span>${Math.floor(idx / 2) + 1}. ${m.player}</span>
+                        <span class="font-bold">${m.move}</span>
+                    </div>
+                `).join('');
+                logEl.scrollTop = logEl.scrollHeight;
+                document.getElementById('moveCountBadge').innerText = `${moveHistory.length} jugadas`;
+            }
+
+            document.getElementById('modeRuleBadge').innerText = gameMode === '2p' ? '2 Jugadores Local' : 'Contra Profesor';
+            document.getElementById('diffRuleBadge').innerText = aiDifficulty === 'easy' ? 'Principiante' : aiDifficulty === 'medium' ? 'Intermedio' : 'Avanzado';
+            document.getElementById('timeRuleBadge').innerText = `${selectedTimeLimitSeconds / 60} minutos globales`;
+        }
+
+        function initPracticeBoard(pieceType) {
+            const pBoardEl = document.getElementById('practiceBoard');
+            pBoardEl.innerHTML = '';
+
+            let pBoard = Array(8).fill(null).map(() => Array(8).fill(null));
+            pBoard[4][4] = { type: pieceType, color: 'w', moved: true };
+            let pSelected = { r: 4, c: 4 };
+            let pValid = getRawPseudoMoves(4, 4, pBoard);
+
+            const descMap = {
+                'p': 'El peón avanza una casilla al frente (dos en su primer movimiento) y captura en diagonal.',
+                'n': 'El caballo se mueve en forma de L (dos casillas en una dirección y una en perpendicular). ¡Puede saltar piezas!',
+                'b': 'El alfil se mueve en cualquier dirección diagonal sin límite de casillas.',
+                'r': 'La torre se mueve en líneas rectas (filas y columnas) sin límite de casillas.',
+                'q': 'La dama combina el poder de la torre y el alfil en cualquier dirección.',
+                'k': 'El rey se mueve una sola casilla en cualquier dirección.'
+            };
+            document.getElementById('practiceDescText').innerText = descMap[pieceType];
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const sq = document.createElement('div');
+                    const isLight = (r + c) % 2 === 0;
+                    sq.className = `relative flex items-center justify-center cursor-pointer ${isLight ? 'square-light' : 'square-dark'}`;
+                    
+                    if (pSelected.r === r && pSelected.c === c) {
+                        sq.classList.add('square-selected');
+                    }
+                    if (pValid.some(m => m.r === r && m.c === c)) {
+                        sq.classList.add('valid-move-dot');
+                    }
+
+                    const piece = pBoard[r][c];
+                    if (piece) {
+                        const span = document.createElement('span');
+                        span.className = "piece text-2xl font-black text-slate-100";
+                        span.innerText = UNICODE_PIECES[`w_${piece.type}`];
+                        sq.appendChild(span);
+                    }
+
+                    sq.onclick = () => {
+                        initPracticeBoard(pieceType);
+                    };
+
+                    pBoardEl.appendChild(sq);
+                }
+            }
+        }
+
+        function selectPracticePiece(type) {
+            ['p', 'n', 'b', 'r', 'q', 'k'].forEach(t => {
+                const btn = document.getElementById(`practiceBtn_${t}`);
+                if (t === type) {
+                    btn.className = "px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs transition";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition";
+                }
+            });
+            initPracticeBoard(type);
+        }
+
+        window.onload = function () {
+            board = createInitialBoard();
+            updateUI();
+            renderBoard();
+        };
+    </script>
+</body>
+</html>
